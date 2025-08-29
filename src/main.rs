@@ -1,7 +1,8 @@
 use job_status_tracker::db::setup_pool_from_env;
 use tracing::error;
 
-use crate::cli::show_main_menu;
+use crate::cli::MainMenu;
+
 mod cli;
 // todo:
 // [x] Create Menu
@@ -16,5 +17,5 @@ async fn main() {
         error!("Error connecting to database: {}", e);
         std::process::exit(1)
     }
-    show_main_menu();
+    MainMenu::show_menu(); 
 }

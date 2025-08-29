@@ -2,12 +2,21 @@ use inquire::Select;
 use std::vec;
 #[derive(Debug, Clone)]
 
-// TODO: 
-// [x] Implement CLI logic 
-// [ ] Refactor nested loops 
-// [ ] Add logging and error handling 
+// TODO:
+// [x] Implement CLI logic
+// [x] Refactor nested loops
+// [ ] Add logging and error handling (time out for errors then exit the loop)
 
-enum MainMenu {
+enum Exit {
+    True,
+    False,
+}
+
+
+
+
+// MAIN MENU 
+pub enum MainMenu {
     SignUp,
     SignIn,
     Quit,
@@ -15,6 +24,34 @@ enum MainMenu {
 impl MainMenu {
     fn all_options() -> Vec<Self> {
         vec![MainMenu::SignUp, MainMenu::SignIn, MainMenu::Quit]
+    }
+    pub fn show_menu() {
+        loop {
+            let user_choice =
+                inquire::Select::new("What would you like to do?", MainMenu::all_options())
+                    .prompt();
+            match user_choice {
+                Ok(choice) => match choice {
+                    MainMenu::SignIn => {
+                        println!("Sign in");
+                        match SignInMenu::show_menu() {
+                            Exit::True => break,
+                            Exit::False => continue,
+                        }
+                    }
+                    MainMenu::SignUp => {
+                        println!("Sign up");
+                        continue;
+                    }
+                    MainMenu::Quit => break,
+                },
+                Err(_) => {
+                    //TODO: ERROR HANDLING AND LOGGING
+                    println!("Error encountered, please try again");
+                    continue;
+                }
+            }
+        }
     }
 }
 impl std::fmt::Display for MainMenu {
@@ -27,6 +64,7 @@ impl std::fmt::Display for MainMenu {
     }
 }
 
+// SIGN-IN MENU 
 #[derive(Debug, Clone)]
 enum SignInMenu {
     ManageEmail,
@@ -35,7 +73,6 @@ enum SignInMenu {
     Back,
     Quit,
 }
-
 impl SignInMenu {
     fn all_options() -> Vec<Self> {
         vec![
@@ -45,6 +82,44 @@ impl SignInMenu {
             SignInMenu::Back,
             SignInMenu::Quit,
         ]
+    }
+    fn show_menu() -> Exit {
+        loop {
+            let user_choice =
+                Select::new("What would you like to do?", SignInMenu::all_options()).prompt();
+            match user_choice {
+                Ok(choice) => {
+                    return match choice {
+                        SignInMenu::ManageEmail => {
+                            // manage email
+                            match EmailMenu::show_menu() {
+                                Exit::True => return Exit::True,
+                                Exit::False => continue,
+                            }
+                        }
+                        SignInMenu::ManageJobs => {
+                            // Manage jobs
+                            match JobMenu::show_menu() {
+                                Exit::True => return Exit::True,
+                                Exit::False => continue,
+                            }
+                        }
+                        SignInMenu::SyncEmail => {
+                            println!("Syncing email");
+                            continue;
+                        }
+                        SignInMenu::Back => break,
+                        SignInMenu::Quit => Exit::True,
+                    };
+                }
+                Err(_) => {
+                    //TODO: ERROR HANDLING AND LOGGING
+                    println!("Error encountered, please try again");
+                    continue;
+                }
+            }
+        }
+        Exit::False
     }
 }
 impl std::fmt::Display for SignInMenu {
@@ -59,6 +134,7 @@ impl std::fmt::Display for SignInMenu {
     }
 }
 
+// EMAIL MENU
 #[derive(Debug, Clone)]
 enum EmailMenu {
     Connect,
@@ -75,6 +151,25 @@ impl EmailMenu {
             EmailMenu::Quit,
         ]
     }
+    fn show_menu() -> Exit {
+        loop {
+            let user_choice = Select::new("Choose", EmailMenu::all_options()).prompt();
+            match user_choice {
+                Ok(choice) => match choice {
+                    EmailMenu::Connect => println!("Connect to email"),
+                    EmailMenu::Remove => println!("Remove Email"),
+                    EmailMenu::Back => break,
+                    EmailMenu::Quit => return Exit::True,
+                },
+                Err(_) => {
+                    //TODO: ERROR HANDLING AND LOGGING
+                    println!("Error encountered, please try again");
+                    continue;
+                }
+            }
+        }
+        Exit::False
+    }
 }
 impl std::fmt::Display for EmailMenu {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -87,6 +182,7 @@ impl std::fmt::Display for EmailMenu {
     }
 }
 
+// JOB MENU 
 #[derive(Debug, Clone)]
 enum JobMenu {
     Display,
@@ -105,6 +201,29 @@ impl JobMenu {
             JobMenu::Quit,
         ]
     }
+    fn show_menu() -> Exit {
+        loop {
+            let user_choice = Select::new("Choose", JobMenu::all_options()).prompt();
+
+            match user_choice {
+                Ok(choice) => match choice {
+                    JobMenu::Display => println!("Display jobs"),
+                    JobMenu::AddNew => println!("Add new job"),
+                    JobMenu::EditStatus => println!("Edit job status"),
+                    JobMenu::Back => break,
+                    JobMenu::Quit => {
+                        return Exit::True;
+                    }
+                },
+                Err(_) => {
+                    //TODO: ERROR HANDLING AND LOGGING
+                    println!("Error encountered, please try again");
+                    continue;
+                }
+            }
+        }
+        Exit::False
+    }
 }
 impl std::fmt::Display for JobMenu {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -114,66 +233,6 @@ impl std::fmt::Display for JobMenu {
             JobMenu::EditStatus => write!(f, "Edit job status"),
             JobMenu::Back => write!(f, "Back"),
             JobMenu::Quit => write!(f, "Quit"),
-        }
-    }
-}
-
-pub fn show_main_menu() {
-    'main_menu: loop {
-        let first_prompt =
-            inquire::Select::new("What would you like to do?", MainMenu::all_options()).prompt();
-        if let Ok(first_choice) = first_prompt {
-            match first_choice {
-                MainMenu::SignIn => {
-                    'sign_in_menu: loop {
-                        let second_prompt =
-                            Select::new("What would you like to do?", SignInMenu::all_options())
-                                .prompt();
-
-                        if let Ok(second_choice) = second_prompt {
-                            match second_choice {
-                                SignInMenu::ManageEmail => {
-                                    // manage email
-                                    'manage_email_menu: loop {
-                                        let third_prompt =
-                                            Select::new("Choose", EmailMenu::all_options())
-                                                .prompt();
-                                        if let Ok(third_choice) = third_prompt {
-                                            match third_choice {
-                                                EmailMenu::Connect => println!("Connect to email"),
-                                                EmailMenu::Remove => println!("Remove Email"),
-                                                EmailMenu::Back => break 'manage_email_menu,
-                                                EmailMenu::Quit => break 'main_menu,
-                                            }
-                                        }
-                                    }
-                                }
-                                SignInMenu::ManageJobs => {
-                                    // Manage jobs
-                                    'manage_jobs_menu: loop {
-                                        let third_prompt =
-                                            Select::new("Choose", JobMenu::all_options()).prompt();
-                                        if let Ok(third_choice) = third_prompt {
-                                            match third_choice {
-                                                JobMenu::Display => println!("Display jobs"),
-                                                JobMenu::AddNew => println!("Add new job"),
-                                                JobMenu::EditStatus => println!("Edit job status"),
-                                                JobMenu::Back => break 'manage_jobs_menu,
-                                                JobMenu::Quit => break 'main_menu,
-                                            }
-                                        }
-                                    }
-                                }
-                                SignInMenu::SyncEmail => println!("Syncing email"),
-                                SignInMenu::Back => break 'sign_in_menu,
-                                SignInMenu::Quit => break 'main_menu,
-                            }
-                        }
-                    }
-                }
-                MainMenu::SignUp => println!("Sign up"),
-                MainMenu::Quit => break 'main_menu,
-            }
         }
     }
 }
